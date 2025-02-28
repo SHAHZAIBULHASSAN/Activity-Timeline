@@ -1,0 +1,151 @@
+/* General container styling */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+}
+
+/* View mode selector */
+.view-selector {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.view-selector button {
+    padding: 8px 16px;
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.view-selector button:hover:not(:disabled) {
+    background-color: #005bb5;
+}
+
+.view-selector button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Calendar container */
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Scrollable calendar container */
+.scrollable-calendar {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Calendar group header */
+.calendar-group-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #f0f8ff;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.calendar-group-header:hover {
+    background-color: #e0f3ff;
+}
+
+.toggle-icon {
+    font-size: 14px;
+    font-weight: bold;
+    transition: transform 0.3s ease;
+}
+
+/* Calendar items container */
+.calendar-items {
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+/* Individual calendar item */
+.calendar-item {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.calendar-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Subject styling */
+.subject {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 5px;
+}
+
+/* Date styling */
+.date {
+    font-size: 12px;
+    color: #666666;
+}
+
+/* No activities message */
+.no-activities {
+    text-align: center;
+    font-size: 16px;
+    color: #888888;
+    padding: 20px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 10px;
+    }
+
+    .calendar-item {
+        padding: 8px;
+    }
+
+    .scrollable-calendar {
+        max-height: 300px; /* Reduce height for smaller screens */
+    }
+    .tooltip {
+        position: absolute;
+        background-color: #333;
+        color: #fff;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: pre-line; /* Preserve line breaks in the tooltip text */
+        pointer-events: none; /* Prevent tooltip from interfering with mouse events */
+        z-index: 1000;
+    }
+}
