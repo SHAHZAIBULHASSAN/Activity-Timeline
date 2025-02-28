@@ -3,8 +3,10 @@ import './css/style.css';
 
 export class ActivityTimeline implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     private container: HTMLDivElement;
-    private activityDataset: ComponentFramework.PropertyTypes.DataSet | undefined; // Optional since it may not be initialized immediately
+    private activityDataset: ComponentFramework.PropertyTypes.DataSet | undefined;
     private currentViewMode = "monthly"; // Default view mode
+    private currentPage = 1; // Current page number
+    private pageSize = 5; // Number of records per page
     private eventListeners: (() => void)[] = []; // Store cleanup functions for event listeners
 
     /**
@@ -22,53 +24,103 @@ export class ActivityTimeline implements ComponentFramework.StandardControl<IInp
 
         // Check if dataset is empty or required fields are missing
         if (!this.activityDataset || !this.activityDataset.sortedRecordIds || this.activityDataset.sortedRecordIds.length === 0) {
-            this.container.innerHTML = "<div class='no-activities'>No activities found</div>";
+            this.container.innerHTML = `<div class='no-activities'>No activities found</div>`;
             return;
         }
 
-        // Group records based on the current view mode
+        // Group records by date based on the current view mode
         const groupedRecords = this.groupRecordsByViewMode();
 
         // Sort groups in descending order
         const sortedGroups = Object.keys(groupedRecords).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+        // Determine if pagination should be shown for date groups
+        const showDatePagination = sortedGroups.length > 5;
+
         // Generate the calendar HTML
         const calendarHTML = `
             <div class="view-selector">
-                <button id="view-monthly" ${this.currentViewMode === "monthly" ? 'disabled' : ''}>Monthly</button>
-                <button id="view-weekly" ${this.currentViewMode === "weekly" ? 'disabled' : ''}>Weekly</button>
-                <button id="view-yearly" ${this.currentViewMode === "yearly" ? 'disabled' : ''}>Yearly</button>
-                <button id="view-daily" ${this.currentViewMode === "daily" ? 'disabled' : ''}>Daily</button>
+                <button id="view-monthly">Monthly</button>
+                <button id="view-weekly">Weekly</button>
+                <button id="view-yearly">Yearly</button>
+                <button id="view-daily">Daily</button>
             </div>
             <div class="calendar-container">
-                <div class="scrollable-calendar">
-                    ${sortedGroups.map((groupKey) => {
+                ${sortedGroups.map((groupKey, index) => {
+                    // Paginate date groups if needed
+                    if (showDatePagination && index >= (this.currentPage - 1) * this.pageSize && index < this.currentPage * this.pageSize) {
                         const records = groupedRecords[groupKey];
+
                         return `
                             <div class="calendar-group">
-                                <div class="calendar-group-header" role="button" aria-expanded="false" data-group="${groupKey}">
-                                    ${groupKey}
-                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                <div class="calendar-group-header" data-group="${groupKey}" aria-expanded="false">
+                                    <span>${groupKey}</span>
+                                    <span class="toggle-icon">▼</span>
                                 </div>
-                                <div class="calendar-items" data-items-for="${groupKey}" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease;">
+                                <div class="calendar-items">
                                     ${records.map((record) => this.renderActivityItem(record)).join("")}
                                 </div>
+                                ${records.length > 3 ? `
+                                    <div class="pagination-controls">
+                                        <button id="prev-page-${groupKey}" ${this.currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                                        <span>Page ${this.currentPage} of ${Math.ceil(records.length / this.pageSize)}</span>
+                                        <button id="next-page-${groupKey}" ${this.currentPage * this.pageSize >= records.length ? 'disabled' : ''}>Next</button>
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
-                    }).join("")}
-                </div>
+                    } else if (!showDatePagination) {
+                        const records = groupedRecords[groupKey];
+
+                        return `
+                            <div class="calendar-group">
+                                <div class="calendar-group-header" data-group="${groupKey}" aria-expanded="false">
+                                    <span>${groupKey}</span>
+                                    <span class="toggle-icon">▼</span>
+                                </div>
+                                <div class="calendar-items">
+                                    ${records.map((record) => this.renderActivityItem(record)).join("")}
+                                </div>
+                                ${records.length > 3 ? `
+                                    <div class="pagination-controls">
+                                        <button id="prev-page-${groupKey}" ${this.currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                                        <span>Page ${this.currentPage} of ${Math.ceil(records.length / this.pageSize)}</span>
+                                        <button id="next-page-${groupKey}" ${this.currentPage * this.pageSize >= records.length ? 'disabled' : ''}>Next</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+                    return "";
+                }).join("")}
+                ${showDatePagination ? `
+                    <div class="pagination-controls">
+                        <button id="prev-date-page" ${this.currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <span>Page ${this.currentPage} of ${Math.ceil(sortedGroups.length / this.pageSize)}</span>
+                        <button id="next-date-page" ${this.currentPage * this.pageSize >= sortedGroups.length ? 'disabled' : ''}>Next</button>
+                    </div>
+                ` : ''}
             </div>
         `;
 
         // Render the calendar
         this.container.innerHTML = calendarHTML;
 
-        // Add event listeners for view mode buttons and group toggles
+        // Add event listeners for view mode buttons, group toggles, and pagination
         this.addEventListeners(context);
     }
 
     /**
-     * Add event listeners for view mode buttons and group toggles.
+     * Paginate records.
+     */
+    private paginateRecords(records: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord[]): ComponentFramework.PropertyHelper.DataSetApi.EntityRecord[] {
+        const startIndex = (this.currentPage - 1) * this.pageSize;
+        const endIndex = this.currentPage * this.pageSize;
+        return records.slice(startIndex, endIndex);
+    }
+
+    /**
+     * Add event listeners for view mode buttons, group toggles, and pagination.
      */
     private addEventListeners(context: ComponentFramework.Context<IInputs>): void {
         // View mode buttons
@@ -78,6 +130,7 @@ export class ActivityTimeline implements ComponentFramework.StandardControl<IInp
             if (button) {
                 const handler = () => {
                     this.currentViewMode = mode;
+                    this.currentPage = 1; // Reset pagination when switching views
                     this.updateView(context); // Re-render the view
                 };
                 button.addEventListener('click', handler);
@@ -90,19 +143,45 @@ export class ActivityTimeline implements ComponentFramework.StandardControl<IInp
             const groupKey = header.getAttribute('data-group');
             if (!groupKey) return;
 
-            const itemsContainer = document.querySelector(`[data-items-for="${groupKey}"]`) as HTMLElement;
+            const itemsContainer = header.nextElementSibling as HTMLElement;
             if (!itemsContainer) return;
 
             const handler = () => {
-                const expanded = itemsContainer.style.maxHeight !== "0px";
-                itemsContainer.style.maxHeight = expanded ? "0px" : `${itemsContainer.scrollHeight}px`;
+                const expanded = header.getAttribute('aria-expanded') === "true";
                 header.setAttribute('aria-expanded', String(!expanded));
+                itemsContainer.style.maxHeight = expanded ? "0px" : `${itemsContainer.scrollHeight}px`;
+
                 const toggleIcon = header.querySelector('.toggle-icon');
                 if (toggleIcon) toggleIcon.textContent = expanded ? "▼" : "▲";
             };
 
             header.addEventListener('click', handler);
             this.eventListeners.push(() => header.removeEventListener('click', handler));
+        });
+
+        // Pagination buttons
+        document.querySelectorAll('.pagination-controls button').forEach((button) => {
+            if (button.id.startsWith('prev-page')) {
+                button.addEventListener('click', () => {
+                    this.currentPage--;
+                    this.updateView(context);
+                });
+            } else if (button.id.startsWith('next-page')) {
+                button.addEventListener('click', () => {
+                    this.currentPage++;
+                    this.updateView(context);
+                });
+            } else if (button.id === 'prev-date-page') {
+                button.addEventListener('click', () => {
+                    this.currentPage--;
+                    this.updateView(context);
+                });
+            } else if (button.id === 'next-date-page') {
+                button.addEventListener('click', () => {
+                    this.currentPage++;
+                    this.updateView(context);
+                });
+            }
         });
     }
 
@@ -114,7 +193,7 @@ export class ActivityTimeline implements ComponentFramework.StandardControl<IInp
 
         const groupedRecords: Record<string, ComponentFramework.PropertyHelper.DataSetApi.EntityRecord[]> = {};
         this.activityDataset.sortedRecordIds.forEach((id) => {
-            const record = this.activityDataset!.records[id]; // Use non-null assertion since we checked above
+            const record = this.activityDataset!.records[id];
             const startDate = record.getFormattedValue("scheduledstart") || "No Start Date";
             let groupKey: string;
 
@@ -148,19 +227,18 @@ export class ActivityTimeline implements ComponentFramework.StandardControl<IInp
      */
     private renderActivityItem(record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord): string {
         const subject = record.getFormattedValue("subject") || "No Subject";
-        const description = record.getFormattedValue("description") || "No Subject";
         const startDate = record.getFormattedValue("scheduledstart") || "No Start Date";
         const endDate = record.getFormattedValue("scheduledend") || "No End Date";
+        const description = record.getFormattedValue("description") || "No Description";
 
-        // Safely extract and validate status code
-        const statusCode = record.getFormattedValue("statuscode");
-        const statusColor = typeof statusCode === "number" ? this.getStatusColor(statusCode) : "#6c757d"; // Default gray
+        const statusCode = record.getValue("statuscode") || 0;
+        const statusColor = typeof statusCode === "number" ? this.getStatusColor(statusCode) : "#6c757d";
 
         return `
-            <div class="calendar-item" style="border-left: 4px solid ${statusColor};">
+            <div class="activity-item" style="border-left: 4px solid ${statusColor};">
                 <div class="subject">${subject}</div>
-                <div class="subject">${description}</div>
-                <div class="date"><strong>Start:</strong> ${startDate}, <strong>End:</strong> ${endDate}</div>
+                <div class="description">${description}</div>
+                <div class="dates">Start: ${startDate}, End: ${endDate}</div>
             </div>
         `;
     }

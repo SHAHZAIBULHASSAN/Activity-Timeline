@@ -19,11 +19,9 @@
     </external-service-usage>
     <!-- dataset node represents a set of entity records on CDS; allow more than one datasets -->
     <data-set name="activityDataset" display-name-key="Dataset_Display_Key"> </data-set>
-    <property name="subject" display-name-key="Subject Field" of-type="SingleLine.Text" usage="input" required="true" />
-            <property name="startDate" display-name-key="Start Date Field" of-type="DateAndTime.DateOnly" usage="input" required="true" />
-            <property name="endDate" display-name-key="End Date Field" of-type="DateAndTime.DateOnly" usage="input" required="true" />
-            <property name="status" display-name-key="Status Field" of-type="OptionSet" usage="input" required="true" />
-        <property name="description" display-name-key="description" of-type="SingleLine.Text" usage="input" required="true" />
+    <property name="subject" display-name-key="Subject" of-type="SingleLine.Text" usage="input" required="true" />
+            
+        <property name="description" display-name-key="description" of-type="SingleLine.Text" usage="input" required="false" />
       <!-- 'property-set' node represents a unique, configurable property that each record in the dataset must provide. -->
       <!-- UNCOMMENT TO ADD PROPERTY-SET NODE
       <property-set name="samplePropertySet" display-name-key="Property_Display_Key" description-key="Property_Desc_Key" of-type="SingleLine.Text" usage="bound" required="true" />
